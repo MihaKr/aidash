@@ -52,7 +52,7 @@ export default function DashboardPage() {
                     <div className="ml-3">
                         <h3 className="text-sm font-medium text-blue-800">Connect Alexa for Usage Updates</h3>
                         <p className="mt-1 text-sm text-blue-700">
-                            Link your Alexa account to receive heating updates when you say "Alexa, I'm home"
+                            Link your Alexa account to receive heating updates when you say &#34;Alexa, I&#39;m home&#34;
                         </p>
                         <div className="mt-2">
                             <button

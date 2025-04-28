@@ -13,7 +13,18 @@ const mockDatabase = {
         lightsOnUnoccupied: true,
         lastUpdated: new Date().toISOString()
     })
+
 };
+
+interface AlexaIntent {
+    name: string;
+    confirmationStatus: 'NONE' | 'CONFIRMED' | 'DENIED';
+    slots?: Record<string, {
+        name: string;
+        value?: string;
+        confirmationStatus: 'NONE' | 'CONFIRMED' | 'DENIED';
+    }>;
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -44,7 +55,7 @@ function handleLaunchRequest() {
     );
 }
 
-async function handleIntentRequest(intent: any, userId: string) {
+async function handleIntentRequest(intent: AlexaIntent, userId: string) {
     const intentName = intent?.name;
 
     if (intentName === "ImHomeIntent") {

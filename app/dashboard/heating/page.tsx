@@ -2,36 +2,30 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 
 export default function HeatingPage() {
     const [isHome, setIsHome] = useState(false);
     const [smartMode, setSmartMode] = useState(false);
     const [temperature, setTemperature] = useState(22);
 
-    // Calculate current energy cost
+    // Calculate current energy cost (returns a number, not string)
     const calculateCost = () => {
-        // Base cost: 0.25€ per kWh, higher temperature means higher consumption
         const hourlyRate = 0.25;
         const baseConsumption = 1.2; // kWh
-        const tempFactor = temperature / 20; // Higher temp = higher consumption
+        const tempFactor = temperature / 20;
 
-        return (baseConsumption * tempFactor * hourlyRate).toFixed(2);
+        return baseConsumption * tempFactor * hourlyRate; // return number
     };
 
-    // Calculate wasted money when not home
     const calculateWaste = () => {
         if (isHome || smartMode) return 0;
         return calculateCost();
     };
 
-    // Calculate monthly projection of waste
     const calculateMonthlyWaste = () => {
-        // Assume 8 hours away per day, 30 days per month
-        return (calculateWaste() * 8 * 30).toFixed(2);
+        return calculateWaste() * 8 * 30;
     };
 
-    // Enable smart mode
     const enableSmartMode = () => {
         setSmartMode(true);
     };
@@ -73,8 +67,10 @@ export default function HeatingPage() {
                             <h3 className="text-sm font-medium text-red-800">You're wasting money right now!</h3>
                             <div className="mt-2 text-sm text-red-700">
                                 <p>Your heating is set to {temperature}°C but you're not home.</p>
-                                <p className="font-bold">This is costing you €{calculateWaste()}/hour unnecessarily.</p>
-                                <p>That's about €{calculateMonthlyWaste()} wasted every month!</p>
+                                <p className="font-bold">
+                                    This is costing you €{calculateWaste().toFixed(2)}/hour unnecessarily.
+                                </p>
+                                <p>That's about €{calculateMonthlyWaste().toFixed(2)} wasted every month!</p>
                                 <button
                                     onClick={enableSmartMode}
                                     className="mt-2 px-3 py-1 bg-green-600 text-white rounded text-sm"
@@ -110,7 +106,7 @@ export default function HeatingPage() {
                 {smartMode && (
                     <div className="mt-4 p-3 bg-green-50 rounded">
                         <p className="text-green-800">
-                            <span className="font-semibold">Smart Savings:</span> Approximately €{calculateMonthlyWaste()} per month
+                            <span className="font-semibold">Smart Savings:</span> Approximately €{calculateMonthlyWaste().toFixed(2)} per month
                         </p>
                     </div>
                 )}
@@ -141,7 +137,7 @@ export default function HeatingPage() {
 
                 <div className="mt-4">
                     <p className="text-gray-700">
-                        Current cost: <span className="font-semibold">€{calculateCost()}/hour</span>
+                        Current cost: <span className="font-semibold">€{calculateCost().toFixed(2)}/hour</span>
                         {!isHome && !smartMode && (
                             <span className="text-red-600"> (wasted money)</span>
                         )}
@@ -163,14 +159,18 @@ export default function HeatingPage() {
                         <div className="text-gray-500 text-sm">Current Temperature</div>
                         <div className="text-lg font-semibold">
                             {temperature}°C
-                            {!isHome && smartMode && <span className="text-xs text-gray-500"> (would be 16°C)</span>}
+                            {!isHome && smartMode && (
+                                <span className="text-xs text-gray-500"> (would be 16°C)</span>
+                            )}
                         </div>
                     </div>
                     <div className="border rounded p-3">
                         <div className="text-gray-500 text-sm">Energy Cost</div>
                         <div className="text-lg font-semibold">
-                            €{calculateCost()}/hour
-                            {!isHome && smartMode && <span className="text-xs text-green-500"> (saving €0.18/h)</span>}
+                            €{calculateCost().toFixed(2)}/hour
+                            {!isHome && smartMode && (
+                                <span className="text-xs text-green-500"> (saving €0.18/h)</span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -181,7 +181,7 @@ export default function HeatingPage() {
                 <div className="bg-blue-50 rounded-lg p-4">
                     <h2 className="text-lg font-semibold text-blue-800 mb-2">Recommendation</h2>
                     <p className="text-blue-700 mb-3">
-                        By enabling Smart Heating Mode, you could save approximately €{calculateMonthlyWaste()} per month when you're not home.
+                        By enabling Smart Heating Mode, you could save approximately €{calculateMonthlyWaste().toFixed(2)} per month when you're not home.
                     </p>
                     <button
                         onClick={enableSmartMode}
