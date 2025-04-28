@@ -9,6 +9,7 @@ import {
     Radar,
     ResponsiveContainer,
     Tooltip,
+    TooltipProps
 } from 'recharts';
 
 interface HourlyData {
@@ -34,6 +35,7 @@ const hourlyData: HourlyData[] = [
     { time: '10 PM', usage: 0.5, cost: 0.19, status: 'Sleep', fill: '#60a5fa' },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const wastedUsage = hourlyData
     .filter(hour => hour.status === 'Away')
     .reduce((sum, hour) => sum + hour.usage, 0);
@@ -50,13 +52,8 @@ const RadialGraph = () => {
         value: viewMode === 'usage' ? hour.usage : hour.cost,
     }));
 
-    const CustomTooltip = ({
-                               active,
-                               payload,
-                           }: {
-        active?: boolean;
-        payload?: any[];
-    }) => {
+    const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+
         if (active && payload && payload.length) {
             const item = payload[0].payload;
             const statusColors: Record<string, string> = {
@@ -158,11 +155,18 @@ const RadialGraph = () => {
                                             strokeWidth={2}
                                         />
                                     )}
-                                    activeDot={{
-                                        r: 8,
-                                        stroke: '#fff',
-                                        strokeWidth: 2,
-                                        fill: (props: any) => props.payload.fill,
+                                    activeDot={(props) => {
+                                        const { cx, cy, payload } = props as { cx: number; cy: number; payload: HourlyData };
+                                        return (
+                                            <circle
+                                                cx={cx}
+                                                cy={cy}
+                                                r={8}
+                                                stroke="#fff"
+                                                strokeWidth={2}
+                                                fill={payload.fill}
+                                            />
+                                        );
                                     }}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
@@ -179,9 +183,9 @@ const RadialGraph = () => {
                             This chart shows your heating usage throughout a day. Longer spikes mean more energy used at that time.
                         </p>
                         <ul className="text-sm text-gray-600 space-y-1">
-                            <li>• Green dots: When you're home</li>
-                            <li>• Red dots: When you're away (wasting energy)</li>
-                            <li>• Blue dots: When you're sleeping</li>
+                            <li>• Green dots: When you&#39;re home</li>
+                            <li>• Red dots: When you&#39;re away (wasting energy)</li>
+                            <li>• Blue dots: When you&#39;re sleeping</li>
                         </ul>
                         <div className="mt-3 text-sm text-gray-600">
                             <strong>Tip:</strong> Notice how much energy is used between 8AM–4PM when no one is home.
