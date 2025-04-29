@@ -1,20 +1,27 @@
 // app/dashboard/heating/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTemperature } from '../../context/TemperatureContext';
 
 export default function HeatingPage() {
+    const { temperature, setTemperature } = useTemperature();
     const [isHome, setIsHome] = useState(false);
     const [smartMode, setSmartMode] = useState(false);
-    const [temperature, setTemperature] = useState(22);
+    const [mounted, setMounted] = useState(false);
 
-    // Calculate current energy cost (returns a number, not string)
+    // Client-side only
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Calculate current energy cost
     const calculateCost = () => {
         const hourlyRate = 0.25;
         const baseConsumption = 1.2; // kWh
         const tempFactor = temperature / 20;
 
-        return baseConsumption * tempFactor * hourlyRate; // return number
+        return baseConsumption * tempFactor * hourlyRate;
     };
 
     const calculateWaste = () => {
@@ -29,6 +36,13 @@ export default function HeatingPage() {
     const enableSmartMode = () => {
         setSmartMode(true);
     };
+
+    if (!mounted) {
+        return <div className="max-w-4xl mx-auto p-4">
+            <h1 className="text-2xl font-bold mb-6">Smart Heating Control</h1>
+            <div className="min-h-screen"></div>
+        </div>;
+    }
 
     return (
         <div className="max-w-4xl mx-auto p-4">

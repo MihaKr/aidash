@@ -1,15 +1,23 @@
+// components/TreeNudge.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTemperature } from '@/app/context/TemperatureContext';
 
 interface UsageData {
-    heatingOn: boolean;
-    temperature: number;
-    electricityUsage: number;
-    averageElectricity: number;
+    heatingOn?: boolean;
+    electricityUsage?: number;
+    averageElectricity?: number;
 }
 
-const TreeNudge = ({ usageData }: { usageData: UsageData | null }) => {
+interface TreeNudgeProps {
+    usageData?: UsageData | null;
+}
+
+const TreeNudge = ({ usageData = null }: TreeNudgeProps) => {
+    // Get temperature from context
+    const { temperature } = useTemperature();
+
     // Use null initial state to prevent hydration mismatch
     const [treeHealth, setTreeHealth] = useState<number | null>(null);
     const [message, setMessage] = useState<string>('');
@@ -18,25 +26,22 @@ const TreeNudge = ({ usageData }: { usageData: UsageData | null }) => {
     // Use useEffect to set initial state client-side only
     useEffect(() => {
         setMounted(true);
-        setTreeHealth(6); // Default value
 
-        // Calculate tree health based on usage data
-        if (!usageData) return;
-
+        // Always calculate tree health based on temperature
         let newHealth = 10; // Start with full health
         let impactMessage = '';
 
-        // Focus only on heating temperature
-        if (usageData.heatingOn && usageData.temperature > 22) {
-            const leavesLost = Math.floor((usageData.temperature - 21));
+        // Focus only on heating temperature - each degree above 21 costs one leaf
+        if (temperature > 21) {
+            const leavesLost = Math.floor(temperature - 21);
             newHealth -= leavesLost;
-            impactMessage = `High heating temperature (${usageData.temperature}°C) is costing ${leavesLost} leaves.`;
+            impactMessage = `High heating temperature (${temperature}°C) is costing ${leavesLost} ${leavesLost === 1 ? 'leaf' : 'leaves'}.`;
         }
 
         // Set the final health value
         setTreeHealth(Math.max(0, Math.min(10, newHealth)));
         setMessage(impactMessage || 'Your eco-habits are keeping the tree healthy!');
-    }, [usageData]);
+    }, [temperature]); // Only depend on temperature
 
     // Only render client-side to avoid hydration mismatch
     if (!mounted) {
@@ -71,8 +76,8 @@ const TreeNudge = ({ usageData }: { usageData: UsageData | null }) => {
                 <div className="text-center mb-4 lg:mb-0">
                     <div className="text-gray-500 text-sm">Heating</div>
                     <div className="flex items-center">
-                        <span className="text-2xl font-bold mr-2">{usageData?.temperature || "--"}°C</span>
-                        <span className="text-sm text-red-500">+3°C</span>
+                        <span className="text-2xl font-bold mr-2">{temperature}°C</span>
+                        <span className="text-sm text-red-500">+{Math.max(0, temperature - 21)}°C</span>
                     </div>
                 </div>
 

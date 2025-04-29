@@ -5,11 +5,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TreeNudge from '@/components/TreeNudge';
 import { AlertTriangle, ThermometerSun } from 'lucide-react';
+import { useTemperature } from '../context/TemperatureContext';
 
 export default function DashboardPage() {
+    const { temperature } = useTemperature();
     const [usageData, setUsageData] = useState({
-        heatingOn: true,
-        temperature: 24,
         electricityUsage: 6.8,
         averageElectricity: 7.5
     });
@@ -30,7 +30,6 @@ export default function DashboardPage() {
     };
 
     if (!mounted) {
-        // During SSR or before hydration, return a minimal layout to avoid hydration errors
         return <div className="max-w-5xl mx-auto p-4">
             <h1 className="text-2xl font-bold mb-6">Welcome to Your Eco Smart Home</h1>
             <div className="min-h-screen"></div>
@@ -52,7 +51,7 @@ export default function DashboardPage() {
                     <div className="ml-3">
                         <h3 className="text-sm font-medium text-blue-800">Connect Alexa for Usage Updates</h3>
                         <p className="mt-1 text-sm text-blue-700">
-                            Link your Alexa account to receive heating updates when you say &#34;Alexa, I&#39;m home&#34;
+                            Link your Alexa account to receive heating updates when you say "Alexa, I'm home"
                         </p>
                         <div className="mt-2">
                             <button
@@ -90,8 +89,8 @@ export default function DashboardPage() {
                         <div className="flex justify-between items-center border-b pb-2 mb-2">
                             <span>Current</span>
                             <div className="flex items-center">
-                                <span className="text-xl font-bold">{usageData.temperature}°C</span>
-                                <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">+3°C</span>
+                                <span className="text-xl font-bold">{temperature}°C</span>
+                                <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">+{Math.max(0, temperature - 21)}°C</span>
                             </div>
                         </div>
                         <div className="flex justify-between items-center border-b pb-2 mb-2">
@@ -123,7 +122,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="flex justify-between items-center">
                                 <span>Potential savings</span>
-                                <span className="font-medium text-green-600">€30/month</span>
+                                <span className="font-medium text-green-600">€{(temperature > 21 ? (temperature - 21) * 10 : 0).toFixed(2)}/month</span>
                             </div>
                         </div>
                         <div className="mt-4">
@@ -142,8 +141,8 @@ export default function DashboardPage() {
                             <div className="ml-3">
                                 <h3 className="text-sm font-medium text-red-800">Heating on in empty home</h3>
                                 <p className="text-xs text-red-700 mt-1">
-                                    Currently set to {usageData.temperature}°C but no one is home.
-                                    Potential waste: €40/month.
+                                    Currently set to {temperature}°C but no one is home.
+                                    Potential waste: €{(temperature > 21 ? (temperature - 21) * 10 : 0).toFixed(2)}/month.
                                 </p>
                                 <Link href="/dashboard/heating" className="text-xs text-blue-600 hover:underline mt-2 inline-block">
                                     Fix this issue
