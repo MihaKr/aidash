@@ -25,11 +25,30 @@ interface AlexaIntent {
     }>;
 }
 
+// Store the last announcement to use when testing with the simulator
+let lastAnnouncement: {
+    message: string;
+    type: string;
+    detail: string;
+    timestamp: string;
+} | null = null;
+
 export async function POST(req: NextRequest) {
     try {
         const alexaRequest = await req.json();
         const requestType = alexaRequest.request.type;
         const userId = alexaRequest.session?.user?.userId || "anonymous";
+
+        // For simulator testing: If this is a LaunchRequest and we have a last announcement,
+        // respond with that announcement instead of the normal welcome message
+        if (requestType === "LaunchRequest" && lastAnnouncement) {
+            const announcement = lastAnnouncement;
+            lastAnnouncement = null; // Clear it after using it once
+
+            return createResponse(
+                `Here's the latest update: ${announcement.message} ${announcement.detail}`
+            );
+        }
 
         // Handle different request types
         if (requestType === "LaunchRequest") {
@@ -118,6 +137,18 @@ async function handleIntentRequest(intent: AlexaIntent, userId: string) {
         }
 
         return createResponse(responseText);
+    } else if (intentName === "GetAnnouncementIntent") {
+        // NEW: Intent to get the last announcement
+        if (lastAnnouncement) {
+            const announcement = lastAnnouncement;
+            lastAnnouncement = null; // Clear it after using it once
+
+            return createResponse(
+                `Here's the latest update: ${announcement.message} ${announcement.detail}`
+            );
+        } else {
+            return createResponse("There are no new announcements at this time.");
+        }
     } else if (intentName === "AMAZON.HelpIntent") {
         return createResponse("You can say 'I'm home' to get your usage update, or ask 'what's my environmental impact' to learn about your carbon footprint.");
     } else if (intentName === "AMAZON.StopIntent" || intentName === "AMAZON.CancelIntent") {
@@ -147,19 +178,28 @@ function createResponse(speechText: string, shouldEndSession = false) {
 // Add a new route for triggering proactive announcements
 export async function PUT(req: NextRequest) {
     try {
-        const { message, type } = await req.json();
+        const { message, type, detail } = await req.json();
 
-        // In a real implementation, you would:
-        // 1. Validate the request
-        // 2. Store the announcement in a queue
-        // 3. Trigger the Alexa Proactive Events API
+        console.log(`Announcement received: ${message} (${type})`);
 
-        console.log(`Announcement queued: ${message} (${type})`);
+        // Store the last announcement for simulator testing
+        lastAnnouncement = {
+            message,
+            type,
+            detail: detail || "",
+            timestamp: new Date().toISOString()
+        };
+
+        // In a real implementation with Alexa Skills Kit, you would:
+        // 1. Call the Alexa Proactive Events API
+        // 2. Format the event according to the API requirements
+        // 3. Send the event with proper authentication
 
         return NextResponse.json({
             success: true,
             message: "Announcement queued successfully",
-            details: "In a production environment, this would trigger the Alexa Proactive Events API"
+            details: "Your announcement is ready for Alexa simulator testing",
+            instructions: "Open the Alexa simulator and say 'Alexa, open Eco Nudge' to hear your announcement"
         });
     } catch (error) {
         console.error("Error processing announcement request:", error);
