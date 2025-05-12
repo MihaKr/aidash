@@ -1,11 +1,22 @@
-// app/dashboard/page.tsx
+// app/dashboard/page.tsx (Updated)
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TreeNudge from '@/components/TreeNudge';
-import { AlertTriangle, ThermometerSun } from 'lucide-react';
+import AlexaTestPanel from '@/components/AlexaTestPanel';
+import AutomaticAlexaAnnouncement from '@/components/AutomaticAlexaAnnouncement';
+import { AlertTriangle, ThermometerSun, HelpCircle } from 'lucide-react';
 import { useTemperature } from '../context/TemperatureContext';
+
+// Simplified announcement type
+interface Announcement {
+    id: string;
+    type: 'weather' | 'time' | 'energy' | 'temperature';
+    label: string;
+    message: string;
+    detail: string;
+}
 
 export default function DashboardPage() {
     const { temperature } = useTemperature();
@@ -17,16 +28,66 @@ export default function DashboardPage() {
     const [alexaConnected, setAlexaConnected] = useState(false);
     const [showAlexaPrompt, setShowAlexaPrompt] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [isTestMode, setIsTestMode] = useState(true);
+    const [lastAnnouncement, setLastAnnouncement] = useState<Announcement | null>(null);
 
     // Client-side only to prevent hydration issues
     useEffect(() => {
         setMounted(true);
+
+        // Check URL parameters for test mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const testMode = urlParams.get('test');
+        if (testMode === 'true') {
+            setIsTestMode(true);
+        } else if (testMode === 'false') {
+            setIsTestMode(false);
+        }
+
+        // Check local storage for Alexa connection status
+        const storedConnection = localStorage.getItem('alexaConnected');
+        if (storedConnection === 'true') {
+            setAlexaConnected(true);
+            setShowAlexaPrompt(false);
+        }
     }, []);
 
     // Function to simulate connecting to Alexa
     const connectToAlexa = () => {
         setAlexaConnected(true);
         setShowAlexaPrompt(false);
+
+        // Store connection status in local storage
+        localStorage.setItem('alexaConnected', 'true');
+    };
+
+    // Function to handle announcements and update UI
+    const handleAnnouncement = (announcement: Announcement) => {
+        // Store the last announcement
+        setLastAnnouncement(announcement);
+
+        // Update the usage data based on the announcement type
+        if (announcement.type === 'weather' && announcement.message.includes('cloudy')) {
+            // Simulate reduced solar production
+            setUsageData(prev => ({
+                ...prev,
+                electricityUsage: Math.min(10, prev.electricityUsage * 1.2),
+            }));
+        } else if (announcement.type === 'energy') {
+            // Simulate higher grid load
+            setUsageData(prev => ({
+                ...prev,
+                electricityUsage: Math.min(10, prev.electricityUsage * 1.1),
+                averageElectricity: prev.averageElectricity * 1.05
+            }));
+        } else if (announcement.type === 'temperature') {
+            // No specific action for temperature announcements in this example
+        }
+    };
+
+    // Clear the announcement
+    const clearAnnouncement = () => {
+        setLastAnnouncement(null);
     };
 
     if (!mounted) {
@@ -40,6 +101,35 @@ export default function DashboardPage() {
         <div className="max-w-5xl mx-auto p-4">
             <h1 className="text-2xl font-bold mb-6">Welcome to Your Eco Smart Home</h1>
 
+            {/* Alexa Test Panel - only show in test mode when connected */}
+            {isTestMode && alexaConnected && (
+                <AlexaTestPanel onAnnouncementSent={handleAnnouncement} />
+            )}
+
+            {/* Automatic Alexa Announcement */}
+            <AutomaticAlexaAnnouncement
+                announcement={lastAnnouncement}
+                onClear={clearAnnouncement}
+            />
+
+            {/* Test Mode Indicator */}
+            {isTestMode && (
+                <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-500 p-3">
+                    <div className="flex justify-between items-center">
+                        <p className="text-sm text-yellow-700">
+                            <strong>Test Mode Active</strong> - Use the settings icon in the bottom-left to access the Alexa test panel
+                        </p>
+                        <Link
+                            href="/dashboard/alexa/test"
+                            className="flex items-center text-blue-600 hover:text-blue-800"
+                        >
+                            <HelpCircle className="h-4 w-4 mr-1" />
+                            <span className="text-xs">How to use</span>
+                        </Link>
+                    </div>
+                </div>
+            )}
+
             {/* Alexa Connection Prompt - only show if not connected */}
             {showAlexaPrompt && (
                 <div className="mb-6 flex items-start border-l-4 border-blue-500 bg-blue-50 p-4">
@@ -51,7 +141,7 @@ export default function DashboardPage() {
                     <div className="ml-3">
                         <h3 className="text-sm font-medium text-blue-800">Connect Alexa for Usage Updates</h3>
                         <p className="mt-1 text-sm text-blue-700">
-                            Link your Alexa account to receive heating updates when you say "Alexa, I'm home"
+                            Link your Alexa account to receive notifications about external factors affecting your energy usage
                         </p>
                         <div className="mt-2">
                             <button
@@ -67,6 +157,31 @@ export default function DashboardPage() {
                                 Dismiss
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Alexa Connection Status - show if connected */}
+            {alexaConnected && (
+                <div className="mb-6 bg-white shadow rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8 bg-blue-600 rounded-full mr-3 flex items-center justify-center">
+                                <span className="text-white text-xs">A</span>
+                            </div>
+                            <div>
+                                <h3 className="font-medium">Alexa Connected</h3>
+                                <p className="text-sm text-gray-500">
+                                    Ready to receive announcements about external factors
+                                </p>
+                            </div>
+                        </div>
+                        <Link
+                            href="/dashboard/alexa/test"
+                            className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full hover:bg-blue-200"
+                        >
+                            Alexa Guide
+                        </Link>
                     </div>
                 </div>
             )}
@@ -114,7 +229,7 @@ export default function DashboardPage() {
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <span>Energy usage</span>
-                                <span className="font-medium">3.2 kWh/day</span>
+                                <span className="font-medium">{usageData.electricityUsage.toFixed(1)} kWh/day</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span>Est. monthly cost</span>
