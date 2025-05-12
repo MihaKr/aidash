@@ -13,6 +13,7 @@ const mockDatabase = {
         lightsOnUnoccupied: true,
         lastUpdated: new Date().toISOString()
     })
+
 };
 
 interface AlexaIntent {
@@ -102,22 +103,6 @@ async function handleIntentRequest(intent: AlexaIntent, userId: string) {
         const responseText = `Based on your energy usage today, your estimated carbon footprint is ${co2Emissions.toFixed(1)} kilograms of CO2. ${co2Emissions > 4 ? "That's higher than average. Check your dashboard for tips to reduce your impact." : "That's lower than average. Great job!"}`;
 
         return createResponse(responseText);
-    } else if (intentName === "ExternalFactorAnnouncementIntent") {
-        // This intent handles when the user responds to a notification
-        const factorType = intent.slots?.factorType?.value || "";
-        let responseText = "";
-
-        if (factorType.includes("cloudy") || factorType.includes("weather")) {
-            responseText = "Since it's cloudy, your solar panels are producing less electricity. Would you like me to suggest ways to reduce your consumption temporarily?";
-        } else if (factorType.includes("rain")) {
-            responseText = "The rain might cause temperatures to drop. Your heating system might need to work harder. Would you like me to optimize your heating schedule?";
-        } else if (factorType.includes("peak") || factorType.includes("time")) {
-            responseText = "During peak hours, electricity costs more. I can help you shift some energy usage to off-peak times if you'd like.";
-        } else {
-            responseText = "I can help you adjust your settings based on the current conditions. Would you like some suggestions?";
-        }
-
-        return createResponse(responseText);
     } else if (intentName === "AMAZON.HelpIntent") {
         return createResponse("You can say 'I'm home' to get your usage update, or ask 'what's my environmental impact' to learn about your carbon footprint.");
     } else if (intentName === "AMAZON.StopIntent" || intentName === "AMAZON.CancelIntent") {
@@ -142,30 +127,4 @@ function createResponse(speechText: string, shouldEndSession = false) {
             shouldEndSession: shouldEndSession
         }
     });
-}
-
-// Add a new route for triggering proactive announcements
-export async function PUT(req: NextRequest) {
-    try {
-        const { message, type } = await req.json();
-
-        // In a real implementation, you would:
-        // 1. Validate the request
-        // 2. Store the announcement in a queue
-        // 3. Trigger the Alexa Proactive Events API
-
-        console.log(`Announcement queued: ${message} (${type})`);
-
-        return NextResponse.json({
-            success: true,
-            message: "Announcement queued successfully",
-            details: "In a production environment, this would trigger the Alexa Proactive Events API"
-        });
-    } catch (error) {
-        console.error("Error processing announcement request:", error);
-        return NextResponse.json({
-            success: false,
-            error: "Failed to process announcement"
-        }, { status: 500 });
-    }
 }
