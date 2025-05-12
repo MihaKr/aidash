@@ -1,4 +1,4 @@
-// components/AlexaTestPanel.tsx (Updated)
+// components/AlexaTestPanel.tsx (Modified for Direct API Calls)
 'use client';
 
 import React, { useState } from 'react';
@@ -63,6 +63,9 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
     const [isSending, setIsSending] = useState(false);
     const [status, setStatus] = useState<{ success?: boolean; message: string } | null>(null);
 
+    // The Alexa API endpoint URL
+    const ALEXA_API_URL = 'https://aidash-xi.vercel.app/api/alexa';
+
     // Send a predefined announcement
     const sendPredefinedAnnouncement = async () => {
         if (!selectedAnnouncement) return;
@@ -71,9 +74,9 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
         setStatus(null);
 
         try {
-            // Call the Alexa announce API
-            const response = await fetch('/api/alexa/announce', {
-                method: 'POST',
+            // Send to the Alexa API
+            const response = await fetch(ALEXA_API_URL, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -84,21 +87,21 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
                 })
             });
 
-            const result = await response.json();
+            const data = await response.json();
 
-            if (result.success) {
-                // Call the callback
+            if (data.success) {
+                // Call the callback to update UI
                 onAnnouncementSent(selectedAnnouncement);
 
                 // Show success message
                 setStatus({
                     success: true,
-                    message: 'Announcement sent successfully!'
+                    message: 'Announcement sent to Alexa API successfully!'
                 });
             } else {
                 setStatus({
                     success: false,
-                    message: result.error || 'Failed to send announcement'
+                    message: data.error || 'Failed to send announcement to Alexa API'
                 });
             }
         } catch (error) {
@@ -129,9 +132,9 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
                 detail: customDetail || ''
             };
 
-            // Call the Alexa announce API
-            const response = await fetch('/api/alexa/announce', {
-                method: 'POST',
+            // Send to the Alexa API
+            const response = await fetch(ALEXA_API_URL, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -142,10 +145,10 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
                 })
             });
 
-            const result = await response.json();
+            const data = await response.json();
 
-            if (result.success) {
-                // Call the callback
+            if (data.success) {
+                // Call the callback to update UI
                 onAnnouncementSent(customAnnouncement);
 
                 // Show success message
@@ -160,7 +163,7 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
             } else {
                 setStatus({
                     success: false,
-                    message: result.error || 'Failed to send custom announcement'
+                    message: data.error || 'Failed to send custom announcement'
                 });
             }
         } catch (error) {
@@ -302,11 +305,10 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
 
             {/* Help section */}
             <div className="bg-gray-50 p-3 rounded-lg text-xs">
-                <h4 className="font-medium text-gray-700 mb-1">Using with Alexa</h4>
+                <h4 className="font-medium text-gray-700 mb-1">About Direct API Integration</h4>
                 <p className="text-gray-600">
-                    When you send an announcement, it will appear at the top of your dashboard.
-                    You can then use the "Copy for Alexa" button to copy the text and paste it
-                    into the Alexa simulator for playback.
+                    Announcements are sent directly to your Alexa API at https://aidash-xi.vercel.app/api/alexa.
+                    This will trigger your Alexa skill to speak the announcement.
                 </p>
             </div>
         </div>

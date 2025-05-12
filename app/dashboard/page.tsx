@@ -1,15 +1,15 @@
-// app/dashboard/page.tsx (Updated)
+// app/dashboard/page.tsx (Direct Alexa API Integration)
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TreeNudge from '@/components/TreeNudge';
 import AlexaTestPanel from '@/components/AlexaTestPanel';
-import AutomaticAlexaAnnouncement from '@/components/AutomaticAlexaAnnouncement';
+import AlexaAnnouncementDisplay from '@/components/AlexaAnnouncementDisplay';
 import { AlertTriangle, ThermometerSun, HelpCircle } from 'lucide-react';
 import { useTemperature } from '../context/TemperatureContext';
 
-// Simplified announcement type
+// Define the Announcement interface
 interface Announcement {
     id: string;
     type: 'weather' | 'time' | 'energy' | 'temperature';
@@ -106,8 +106,8 @@ export default function DashboardPage() {
                 <AlexaTestPanel onAnnouncementSent={handleAnnouncement} />
             )}
 
-            {/* Automatic Alexa Announcement */}
-            <AutomaticAlexaAnnouncement
+            {/* Announcement Display */}
+            <AlexaAnnouncementDisplay
                 announcement={lastAnnouncement}
                 onClear={clearAnnouncement}
             />
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                             <div>
                                 <h3 className="font-medium">Alexa Connected</h3>
                                 <p className="text-sm text-gray-500">
-                                    Ready to receive announcements about external factors
+                                    Sending announcements directly to Alexa API
                                 </p>
                             </div>
                         </div>
