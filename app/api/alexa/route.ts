@@ -1,19 +1,40 @@
 // app/api/alexa/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-// Mock database - in a real app, this would be a database connection
-const mockDatabase = {
-    getUserData: (userId: string) => ({
-        heatingOn: true,
-        temperature: 24, // degrees C
-        electricityUsage: 12.5, // kWh
-        averageElectricity: 10, // kWh
-        waterUsage: 150, // liters
-        averageWater: 120, // liters
-        lightsOnUnoccupied: true,
-        lastUpdated: new Date().toISOString()
-    })
+// Global state to store dashboard values
+// In a real application, this would be a database or state management system
+interface DashboardState {
+    temperature: number;
+    electricityUsage: number;
+    averageElectricity: number;
+    waterUsage: number;
+    averageWater: number;
+    heatingOn: boolean;
+    lightsOnUnoccupied: boolean;
+    treeHealth: number;
+    lastUpdated: string;
+}
+
+// Initialize with default values
+let dashboardState: DashboardState = {
+    temperature: 21,
+    electricityUsage: 6.8,
+    averageElectricity: 7.5,
+    waterUsage: 150,
+    averageWater: 120,
+    heatingOn: true,
+    lightsOnUnoccupied: false,
+    treeHealth: 10,
+    lastUpdated: new Date().toISOString()
 };
+
+// Store the last announcement to use when testing with the simulator
+let lastAnnouncement: {
+    message: string;
+    type: string;
+    detail: string;
+    timestamp: string;
+} | null = null;
 
 interface AlexaIntent {
     name: string;
@@ -25,36 +46,17 @@ interface AlexaIntent {
     }>;
 }
 
-// Store the last announcement to use when testing with the simulator
-let lastAnnouncement: {
-    message: string;
-    type: string;
-    detail: string;
-    timestamp: string;
-} | null = null;
-
 export async function POST(req: NextRequest) {
     try {
         const alexaRequest = await req.json();
         const requestType = alexaRequest.request.type;
         const userId = alexaRequest.session?.user?.userId || "anonymous";
 
-        // For simulator testing: If this is a LaunchRequest and we have a last announcement,
-        // respond with that announcement instead of the normal welcome message
-        if (requestType === "LaunchRequest" && lastAnnouncement) {
-            const announcement = lastAnnouncement;
-            lastAnnouncement = null; // Clear it after using it once
-
-            return createResponse(
-                `Here's the latest update: ${announcement.message} ${announcement.detail}`
-            );
-        }
-
         // Handle different request types
         if (requestType === "LaunchRequest") {
             return handleLaunchRequest();
         } else if (requestType === "IntentRequest") {
-            return handleIntentRequest(alexaRequest.request.intent, userId);
+            return handleIntentRequest(alexaRequest.request.intent);
         } else if (requestType === "SessionEndedRequest") {
             return handleSessionEndedRequest();
         }
@@ -68,26 +70,33 @@ export async function POST(req: NextRequest) {
 }
 
 function handleLaunchRequest() {
+    // Check if there's an announcement when opening the skill
+    if (lastAnnouncement) {
+        const announcement = lastAnnouncement;
+
+        // Don't clear the announcement here so it can be accessed by AnyUpdatesIntent too
+
+        return createResponse(
+            `Welcome to Eco Nudge. I have an update for you: ${announcement.message} ${announcement.detail}`
+        );
+    }
+
     return createResponse(
-        "Welcome to Eco Nudge. You can say 'I'm home' to get your usage update, or ask about your environmental impact."
+        "Welcome to Eco Nudge. You can ask if there are any updates, say 'I'm home' to get your usage update, or ask about your environmental impact."
     );
 }
 
-async function handleIntentRequest(intent: AlexaIntent, userId: string) {
+async function handleIntentRequest(intent: AlexaIntent) {
     const intentName = intent?.name;
 
     if (intentName === "ImHomeIntent") {
-        // Handle "I'm home" intent
-        const userData = mockDatabase.getUserData(userId);
+        // Use real-time dashboard values
+        const userData = dashboardState;
 
         // Calculate environmental impact
-        let lostLeaves = 0;
-        if (userData.heatingOn && userData.temperature > 22) lostLeaves += 3;
-        if (userData.electricityUsage > userData.averageElectricity * 1.2) lostLeaves += 2;
-        if (userData.waterUsage > userData.averageWater * 1.3) lostLeaves += 2;
-        if (userData.lightsOnUnoccupied) lostLeaves += 1;
+        let lostLeaves = 10 - userData.treeHealth;
 
-        let responseText = `Welcome home! Today, your energy usage is ${Math.round(userData.electricityUsage)} kilowatt hours, which is `;
+        let responseText = `Welcome home! Today, your energy usage is ${userData.electricityUsage.toFixed(1)} kilowatt hours, which is `;
 
         if (userData.electricityUsage > userData.averageElectricity) {
             responseText += `${Math.round((userData.electricityUsage / userData.averageElectricity - 1) * 100)}% above your average. `;
@@ -98,9 +107,9 @@ async function handleIntentRequest(intent: AlexaIntent, userId: string) {
         if (lostLeaves > 0) {
             responseText += `Your tree has lost ${lostLeaves} ${lostLeaves === 1 ? 'leaf' : 'leaves'} today. `;
 
-            // Add specific tips
-            if (userData.heatingOn && userData.temperature > 22) {
-                responseText += "Try lowering your heating by 2 degrees to save 3 leaves. ";
+            // Add specific tips based on the current dashboard state
+            if (userData.heatingOn && userData.temperature > 21) {
+                responseText += `Try lowering your heating from ${userData.temperature}°C to 21°C to save leaves. `;
             }
 
             if (userData.lightsOnUnoccupied) {
@@ -112,33 +121,33 @@ async function handleIntentRequest(intent: AlexaIntent, userId: string) {
 
         return createResponse(responseText);
     } else if (intentName === "GetEnvironmentalImpactIntent") {
-        // Handle environmental impact intent
-        const userData = mockDatabase.getUserData(userId);
+        // Use real-time dashboard values
+        const userData = dashboardState;
 
-        // Calculate CO2 emissions (simplified example)
+        // Calculate CO2 emissions based on current electricity usage
         const co2Emissions = userData.electricityUsage * 0.4; // kg of CO2
 
-        const responseText = `Based on your energy usage today, your estimated carbon footprint is ${co2Emissions.toFixed(1)} kilograms of CO2. ${co2Emissions > 4 ? "That's higher than average. Check your dashboard for tips to reduce your impact." : "That's lower than average. Great job!"}`;
+        // Calculate potential savings based on current temperature
+        const potentialSavings = userData.temperature > 21 ? (userData.temperature - 21) * 10 : 0;
+
+        const responseText = `Based on your current energy usage of ${userData.electricityUsage.toFixed(1)} kilowatt hours, your estimated carbon footprint is ${co2Emissions.toFixed(1)} kilograms of CO2. ${co2Emissions > 4 ? "That's higher than average. " : "That's lower than average. Great job! "}${potentialSavings > 0 ? `You could save approximately €${potentialSavings.toFixed(2)} per month by optimizing your heating temperature.` : ""}`;
 
         return createResponse(responseText);
-    } else if (intentName === "ExternalFactorAnnouncementIntent") {
-        // This intent handles when the user responds to a notification
-        const factorType = intent.slots?.factorType?.value || "";
-        let responseText = "";
+    } else if (intentName === "AnyUpdatesIntent") {
+        // NEW: Handle "any updates?" intent
+        if (lastAnnouncement) {
+            const announcement = lastAnnouncement;
+            // We'll clear the announcement after delivering it
+            lastAnnouncement = null;
 
-        if (factorType.includes("cloudy") || factorType.includes("weather")) {
-            responseText = "Since it's cloudy, your solar panels are producing less electricity. Would you like me to suggest ways to reduce your consumption temporarily?";
-        } else if (factorType.includes("rain")) {
-            responseText = "The rain might cause temperatures to drop. Your heating system might need to work harder. Would you like me to optimize your heating schedule?";
-        } else if (factorType.includes("peak") || factorType.includes("time")) {
-            responseText = "During peak hours, electricity costs more. I can help you shift some energy usage to off-peak times if you'd like.";
+            return createResponse(
+                `Yes, I have an update for you: ${announcement.message} ${announcement.detail || ''}`
+            );
         } else {
-            responseText = "I can help you adjust your settings based on the current conditions. Would you like some suggestions?";
+            return createResponse("There are no new updates at this time. Your eco home is running normally.");
         }
-
-        return createResponse(responseText);
     } else if (intentName === "GetAnnouncementIntent") {
-        // NEW: Intent to get the last announcement
+        // Backward compatibility for the previous announcement intent
         if (lastAnnouncement) {
             const announcement = lastAnnouncement;
             lastAnnouncement = null; // Clear it after using it once
@@ -149,12 +158,21 @@ async function handleIntentRequest(intent: AlexaIntent, userId: string) {
         } else {
             return createResponse("There are no new announcements at this time.");
         }
+    } else if (intentName === "GetCurrentTreeHealthIntent") {
+        // Intent to get current tree health
+        return createResponse(
+            `Your eco tree currently has ${dashboardState.treeHealth} out of 10 leaves. ${
+                dashboardState.treeHealth < 7
+                    ? "Try lowering your heating temperature to improve your tree's health."
+                    : "Your tree is looking healthy!"
+            }`
+        );
     } else if (intentName === "AMAZON.HelpIntent") {
-        return createResponse("You can say 'I'm home' to get your usage update, or ask 'what's my environmental impact' to learn about your carbon footprint.");
+        return createResponse("You can ask if there are any updates, say 'I'm home' to get your usage update, ask 'what's my environmental impact' to learn about your carbon footprint, or ask 'how's my tree doing' to check your eco tree's health.");
     } else if (intentName === "AMAZON.StopIntent" || intentName === "AMAZON.CancelIntent") {
         return createResponse("Goodbye!", true);
     } else {
-        return createResponse("I'm not sure how to help with that. You can say 'I'm home' to get your usage update.");
+        return createResponse("I'm not sure how to help with that. You can ask if there are any updates or say 'I'm home' to get your usage update.");
     }
 }
 
@@ -175,14 +193,14 @@ function createResponse(speechText: string, shouldEndSession = false) {
     });
 }
 
-// Add a new route for triggering proactive announcements
+// Add a route for triggering proactive announcements
 export async function PUT(req: NextRequest) {
     try {
         const { message, type, detail } = await req.json();
 
         console.log(`Announcement received: ${message} (${type})`);
 
-        // Store the last announcement for simulator testing
+        // Store the last announcement
         lastAnnouncement = {
             message,
             type,
@@ -190,16 +208,11 @@ export async function PUT(req: NextRequest) {
             timestamp: new Date().toISOString()
         };
 
-        // In a real implementation with Alexa Skills Kit, you would:
-        // 1. Call the Alexa Proactive Events API
-        // 2. Format the event according to the API requirements
-        // 3. Send the event with proper authentication
-
         return NextResponse.json({
             success: true,
             message: "Announcement queued successfully",
-            details: "Your announcement is ready for Alexa simulator testing",
-            instructions: "Open the Alexa simulator and say 'Alexa, open Eco Nudge' to hear your announcement"
+            details: "Your announcement is ready for Alexa testing",
+            instructions: "Open the Alexa simulator and say 'Alexa, ask Eco Nudge if there are any updates' to hear your announcement"
         });
     } catch (error) {
         console.error("Error processing announcement request:", error);
@@ -208,4 +221,38 @@ export async function PUT(req: NextRequest) {
             error: "Failed to process announcement"
         }, { status: 500 });
     }
+}
+
+// Add an endpoint to update dashboard values
+export async function PATCH(req: NextRequest) {
+    try {
+        const updates = await req.json();
+
+        // Update only the provided values
+        dashboardState = {
+            ...dashboardState,
+            ...updates,
+            lastUpdated: new Date().toISOString()
+        };
+
+        return NextResponse.json({
+            success: true,
+            message: "Dashboard state updated successfully",
+            currentState: dashboardState
+        });
+    } catch (error) {
+        console.error("Error updating dashboard state:", error);
+        return NextResponse.json({
+            success: false,
+            error: "Failed to update dashboard state"
+        }, { status: 500 });
+    }
+}
+
+// Add an endpoint to get dashboard values
+export async function GET(req: NextRequest) {
+    return NextResponse.json({
+        success: true,
+        data: dashboardState
+    });
 }

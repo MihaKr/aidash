@@ -1,8 +1,8 @@
-// components/AlexaTestPanel.tsx (Modified for Direct API Calls)
+// components/AlexaTestPanel.tsx
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, X, Send } from 'lucide-react';
+import { Settings, X, Send, InfoIcon } from 'lucide-react';
 
 interface AnnouncementType {
     id: string;
@@ -62,6 +62,7 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
     const [customType, setCustomType] = useState<'weather' | 'time' | 'energy' | 'temperature'>('weather');
     const [isSending, setIsSending] = useState(false);
     const [status, setStatus] = useState<{ success?: boolean; message: string } | null>(null);
+    const [showHelpInfo, setShowHelpInfo] = useState(false);
 
     // The Alexa API endpoint URL
     const ALEXA_API_URL = 'https://aidash-xi.vercel.app/api/alexa';
@@ -96,7 +97,7 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
                 // Show success message
                 setStatus({
                     success: true,
-                    message: 'Announcement sent to Alexa API successfully!'
+                    message: 'Announcement ready! Use the simulator and ask "Are there any updates?" to hear it.'
                 });
             } else {
                 setStatus({
@@ -154,7 +155,7 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
                 // Show success message
                 setStatus({
                     success: true,
-                    message: 'Custom announcement sent successfully!'
+                    message: 'Custom announcement ready! Ask Alexa "Are there any updates?" to hear it.'
                 });
 
                 // Reset form
@@ -201,6 +202,39 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
                     <X className="w-5 h-5" />
                 </button>
             </div>
+
+            {/* Info/Help button */}
+            <div className="absolute top-4 right-12">
+                <button
+                    onClick={() => setShowHelpInfo(!showHelpInfo)}
+                    className="text-gray-400 hover:text-gray-600"
+                >
+                    <InfoIcon className="w-5 h-5" />
+                </button>
+            </div>
+
+            {/* Help Info Dialog */}
+            {showHelpInfo && (
+                <div className="bg-blue-50 p-3 mb-4 rounded-lg border border-blue-100">
+                    <h4 className="font-medium text-blue-800 mb-2">How to Test Announcements</h4>
+                    <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-1">
+                        <li>Select or create an announcement below</li>
+                        <li>Click "Send Selected" or "Send Custom Announcement"</li>
+                        <li>Open the Alexa simulator in another window</li>
+                        <li>Say: <span className="font-medium">"Alexa, ask Eco Nudge if there are any updates"</span></li>
+                        <li>Alexa will respond with your announcement</li>
+                    </ol>
+                    <div className="mt-2 text-xs text-blue-600">
+                        You can also say "Alexa, open Eco Nudge" to hear the announcement when opening the skill.
+                    </div>
+                    <button
+                        onClick={() => setShowHelpInfo(false)}
+                        className="mt-2 text-xs text-blue-700 hover:text-blue-900 underline"
+                    >
+                        Close
+                    </button>
+                </div>
+            )}
 
             {/* Status message */}
             {status && (
@@ -303,13 +337,23 @@ const AlexaTestPanel: React.FC<AlexaTestPanelProps> = ({ onAnnouncementSent }) =
                 </button>
             </div>
 
-            {/* Help section */}
-            <div className="bg-gray-50 p-3 rounded-lg text-xs">
-                <h4 className="font-medium text-gray-700 mb-1">About Direct API Integration</h4>
-                <p className="text-gray-600">
-                    Announcements are sent directly to your Alexa API at https://aidash-xi.vercel.app/api/alexa.
-                    This will trigger your Alexa skill to speak the announcement.
-                </p>
+            {/* Alexa Simulator Commands */}
+            <div className="bg-gray-50 p-3 rounded-lg text-xs mb-2">
+                <h4 className="font-medium text-gray-700 mb-1">Try These Commands in Alexa Simulator:</h4>
+                <div className="space-y-2">
+                    <div className="p-2 bg-white rounded border border-gray-200">
+                        <span className="font-medium">1. "Alexa, ask Eco Nudge if there are any updates"</span>
+                        <p className="text-gray-600 mt-1">Gets the latest announcement you've sent</p>
+                    </div>
+                    <div className="p-2 bg-white rounded border border-gray-200">
+                        <span className="font-medium">2. "Alexa, ask Eco Nudge how's my tree doing"</span>
+                        <p className="text-gray-600 mt-1">Gets real-time tree health based on current temperature</p>
+                    </div>
+                    <div className="p-2 bg-white rounded border border-gray-200">
+                        <span className="font-medium">3. "Alexa, ask Eco Nudge what's my environmental impact"</span>
+                        <p className="text-gray-600 mt-1">Gets real-time impact data from your dashboard</p>
+                    </div>
+                </div>
             </div>
         </div>
     );
