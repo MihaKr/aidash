@@ -23,6 +23,25 @@ const TreeNudge = ({ usageData = null }: TreeNudgeProps) => {
     const [message, setMessage] = useState<string>('');
     const [mounted, setMounted] = useState(false);
 
+    // Update the Alexa API with tree health and other data
+    const updateAlexaAPI = async (health: number, electricityUsage: number) => {
+        try {
+            await fetch('https://aidash-xi.vercel.app/api/alexa', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    treeHealth: health,
+                    electricityUsage: electricityUsage,
+                    heatingOn: true,
+                }),
+            });
+        } catch (error) {
+            console.error('Error updating Alexa API:', error);
+        }
+    };
+
     // Use useEffect to set initial state client-side only
     useEffect(() => {
         setMounted(true);
@@ -38,10 +57,16 @@ const TreeNudge = ({ usageData = null }: TreeNudgeProps) => {
             impactMessage = `High heating temperature (${temperature}°C) is costing ${leavesLost} ${leavesLost === 1 ? 'leaf' : 'leaves'}.`;
         }
 
-        // Set the final health value
-        setTreeHealth(Math.max(0, Math.min(10, newHealth)));
+        // Set the final health value (ensure it's not negative)
+        const finalHealth = Math.max(0, Math.min(10, newHealth));
+        setTreeHealth(finalHealth);
         setMessage(impactMessage || 'Your eco-habits are keeping the tree healthy!');
-    }, [temperature]); // Only depend on temperature
+
+        // Update the Alexa API with current values
+        const currentElectricityUsage = usageData?.electricityUsage || 6.8;
+        updateAlexaAPI(finalHealth, currentElectricityUsage);
+
+    }, [temperature, usageData]); // Depend on temperature and usageData
 
     // Only render client-side to avoid hydration mismatch
     if (!mounted) {
