@@ -16,13 +16,16 @@ export default function DashboardLayout({
                             <h1 className="text-xl font-bold">Eco Smart Home</h1>
                         </div>
                         <nav className="flex space-x-4">
-                            <a href="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
+                            <a href="/dashboard"
+                               className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
                                 Dashboard
                             </a>
-                            <a href="/dashboard/heating" className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
+                            <a href="/dashboard/heating"
+                               className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
                                 Heating
                             </a>
-                            <a href="/dashboard/settings" className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
+                            <a href="/dashboard/settings"
+                               className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
                                 Settings
                             </a>
                         </nav>
@@ -38,6 +41,7 @@ export default function DashboardLayout({
             </main>
 
             {/* Temperature Notification */}
-            <TemperatureNotification />
+            <TemperatureNotification/>
         </div>
     );
+}
