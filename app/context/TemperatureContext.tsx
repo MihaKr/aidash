@@ -1,77 +1,97 @@
-// app/context/TemperatureContext.tsx
-'use client';
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Define the context type
 interface TemperatureContextType {
     temperature: number;
     setTemperature: (temp: number) => void;
+    isLoading: boolean;
+    lastUpdated: Date | null;
 }
 
-// Create the context with default values
 const TemperatureContext = createContext<TemperatureContextType>({
     temperature: 21,
     setTemperature: () => {},
+    isLoading: false,
+    lastUpdated: null
 });
 
-// Custom hook to use the temperature context
 export const useTemperature = () => useContext(TemperatureContext);
 
-// Provider component
 export const TemperatureProvider = ({ children }: { children: ReactNode }) => {
-    // Use localStorage to persist temperature across pages
     const [temperature, setTemperatureState] = useState(21);
+    const [isLoading, setIsLoading] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [mounted, setMounted] = useState(false);
 
-    // Initialize from localStorage on client side only
+    // Initialize from localStorage on client side
     useEffect(() => {
         setMounted(true);
         const storedTemp = localStorage.getItem('temperature');
         if (storedTemp) {
             setTemperatureState(Number(storedTemp));
         }
+
+        // Poll for temperature updates every 30 seconds
+        const pollInterval = setInterval(checkForUpdates, 30000);
+        return () => clearInterval(pollInterval);
     }, []);
 
-    // Update Alexa API when temperature changes
-    const updateAlexaAPI = async (temp: number) => {
+    // Check for temperature updates from Alexa
+    const checkForUpdates = async () => {
         try {
-            const response = await fetch('https://aidash-xi.vercel.app/api/alexa', {
+            const response = await fetch('/api/alexa');
+            const data = await response.json();
+
+            if (data.temperature && data.temperature !== temperature) {
+                setTemperatureState(data.temperature);
+                setLastUpdated(new Date());
+                localStorage.setItem('temperature', data.temperature.toString());
+            }
+        } catch (error) {
+            console.error('Error checking for temperature updates:', error);
+        }
+    };
+
+    // Update temperature both locally and on the server
+    const setTemperature = async (temp: number) => {
+        setIsLoading(true);
+        try {
+            // Update local state immediately for responsive UI
+            setTemperatureState(temp);
+            localStorage.setItem('temperature', temp.toString());
+
+            // Update server
+            const response = await fetch('/api/alexa', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     temperature: temp,
-                    // We can also update tree health based on temperature
-                    treeHealth: Math.max(0, 10 - Math.max(0, temp - 21)),
                 }),
             });
 
             if (!response.ok) {
-                console.error('Failed to update Alexa API with temperature change');
+                throw new Error('Failed to update temperature');
             }
+
+            setLastUpdated(new Date());
         } catch (error) {
-            console.error('Error updating Alexa API:', error);
+            console.error('Error updating temperature:', error);
+            // Revert on failure
+            const storedTemp = localStorage.getItem('temperature');
+            if (storedTemp) {
+                setTemperatureState(Number(storedTemp));
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    // Update localStorage and API when temperature changes
-    const setTemperature = (temp: number) => {
-        setTemperatureState(temp);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('temperature', temp.toString());
-
-            // Update Alexa API with new temperature
-            updateAlexaAPI(temp);
-        }
-    };
-
-    // Only provide the context value when the component is mounted (client-side)
-    // This prevents hydration mismatches
     const contextValue = {
         temperature,
-        setTemperature
+        setTemperature,
+        isLoading,
+        lastUpdated
     };
 
     return (
