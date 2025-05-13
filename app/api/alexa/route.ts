@@ -10,7 +10,37 @@ const mockDatabase = {
         waterUsage: 150, // liters
         averageWater: 120, // liters
         lightsOnUnoccupied: true,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        solarProduction: 2.1, // kWh
+        expectedSolarProduction: 4.5 // kWh
+    },
+
+    // Simulate different environmental conditions
+    environmentalConditions: {
+        currentCondition: (() => {
+            // Randomly select one of three conditions for demo purposes
+            const conditions = [
+                {
+                    type: "CLOUDY_DAY",
+                    description: "cloudy conditions",
+                    impact: "solar panels are producing less energy than usual",
+                    recommendation: "consider running high-energy appliances after 5 PM when electricity rates are lower"
+                },
+                {
+                    type: "PEAK_HOURS",
+                    description: "peak energy consumption hours",
+                    impact: "electricity rates are currently at their highest",
+                    recommendation: "delay any non-essential appliance usage until after 7 PM to save on costs"
+                },
+                {
+                    type: "HIGH_DEMAND",
+                    description: "high neighborhood energy demand",
+                    impact: "the local grid is experiencing high load",
+                    recommendation: "reducing your consumption now could save you money and help stabilize the grid"
+                }
+            ];
+            return conditions[Math.floor(Math.random() * conditions.length)];
+        })()
     },
 
     getUserData: (userId: string) => mockDatabase.userData,
@@ -18,18 +48,10 @@ const mockDatabase = {
     updateTemperature: (temp: number) => {
         mockDatabase.userData.temperature = temp;
         return mockDatabase.userData;
-    }
-};
+    },
 
-interface AlexaIntent {
-    name: string;
-    confirmationStatus: 'NONE' | 'CONFIRMED' | 'DENIED';
-    slots?: Record<string, {
-        name: string;
-        value?: string;
-        confirmationStatus: 'NONE' | 'CONFIRMED' | 'DENIED';
-    }>;
-}
+    getEnvironmentalUpdate: () => mockDatabase.environmentalConditions.currentCondition
+};
 
 export async function POST(req: NextRequest) {
     try {
