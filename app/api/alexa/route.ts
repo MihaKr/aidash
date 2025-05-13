@@ -84,7 +84,9 @@ function handleLaunchRequest() {
 async function handleIntentRequest(intent: AlexaIntent, userId: string) {
     const intentName = intent?.name;
 
-    if (intentName === "ChangeTemperatureIntent") {
+    if (intentName === "AnyUpdatesIntent") {
+        return handleAnyUpdatesIntent(userId);
+    } else if (intentName === "ChangeTemperatureIntent") {
         return handleChangeTemperature(intent);
     } else if (intentName === "ImHomeIntent") {
         return handleImHomeIntent(userId);
@@ -94,13 +96,53 @@ async function handleIntentRequest(intent: AlexaIntent, userId: string) {
         return handleGetTemperature();
     } else if (intentName === "AMAZON.HelpIntent") {
         return createResponse(
-            "You can say 'I'm home' to get your usage update, ask 'what's my environmental impact', or say 'set temperature to 21 degrees'."
+            "You can say 'I'm home' to get your usage update, ask 'what's my environmental impact', say 'set temperature to 21 degrees', or ask 'are there any updates' for current conditions."
         );
     } else if (intentName === "AMAZON.StopIntent" || intentName === "AMAZON.CancelIntent") {
         return createResponse("Goodbye!", true);
     } else {
         return createResponse("I'm not sure how to help with that. You can say 'I'm home' to get your usage update.");
     }
+}
+
+function handleAnyUpdatesIntent(userId: string) {
+    const userData = mockDatabase.getUserData(userId);
+    const currentCondition = mockDatabase.getEnvironmentalUpdate();
+
+    let responseText = `There are currently ${currentCondition.description}. ${currentCondition.impact}. `;
+
+    // Add specific details based on the condition type
+    switch (currentCondition.type) {
+        case "CLOUDY_DAY":
+            const productionDrop = ((userData.expectedSolarProduction - userData.solarProduction) / userData.expectedSolarProduction * 100).toFixed(0);
+            responseText += `Your solar production is down ${productionDrop}% from expected. ${currentCondition.recommendation}. `;
+            break;
+
+        case "PEAK_HOURS":
+            const potentialSavings = (userData.electricityUsage * 0.15).toFixed(2); // Assume 15% potential savings
+            responseText += `You could save approximately €${potentialSavings} by ${currentCondition.recommendation}. `;
+            break;
+
+        case "HIGH_DEMAND":
+            const currentUsage = userData.electricityUsage.toFixed(1);
+            responseText += `Your current consumption is ${currentUsage} kWh. ${currentCondition.recommendation}. `;
+            break;
+    }
+
+    // Add temperature-related advice if relevant
+    if (userData.temperature > 21) {
+        responseText += `Also, your heating is set to ${userData.temperature}°C, which is above the recommended temperature. Lowering it by ${userData.temperature - 21} degrees could reduce your energy consumption. `;
+    }
+
+    // Add a general eco-tip
+    const ecoTips = [
+        "Remember to turn off lights in unoccupied rooms to save energy.",
+        "Consider using natural light during daytime hours when possible.",
+        "Running your washing machine at full load can save both water and electricity."
+    ];
+    responseText += ecoTips[Math.floor(Math.random() * ecoTips.length)];
+
+    return createResponse(responseText);
 }
 
 function handleChangeTemperature(intent: AlexaIntent) {
