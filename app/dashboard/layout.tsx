@@ -1,11 +1,5 @@
-// app/dashboard/layout.tsx
 import React from 'react';
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-    title: 'Smart Home Dashboard',
-    description: 'Monitor and improve your ecological habits with smart home technology',
-};
+import TemperatureNotification from '@/components/TemperatureNotification';
 
 export default function DashboardLayout({
                                             children,
@@ -14,7 +8,7 @@ export default function DashboardLayout({
 }) {
     return (
         <div className="min-h-screen bg-gray-100">
-            {/* Simple Header */}
+            {/* Existing header */}
             <header className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16 items-center">
@@ -25,7 +19,7 @@ export default function DashboardLayout({
                             <a href="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
                                 Dashboard
                             </a>
-                            <a href="/dashboard/heating" className="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 text-white">
+                            <a href="/dashboard/heating" className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
                                 Heating
                             </a>
                             <a href="/dashboard/settings" className="px-3 py-2 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-50">
@@ -42,6 +36,8 @@ export default function DashboardLayout({
                     {children}
                 </div>
             </main>
+
+            {/* Temperature Notification */}
+            <TemperatureNotification />
         </div>
     );
-}
