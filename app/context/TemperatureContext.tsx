@@ -1,3 +1,6 @@
+// app/context/TemperatureContext.tsx
+'use client';
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface TemperatureContextType {
@@ -22,16 +25,25 @@ export const TemperatureProvider = ({ children }: { children: ReactNode }) => {
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [mounted, setMounted] = useState(false);
 
-    // Initialize from localStorage on client side
+    // Fetch initial temperature on mount
     useEffect(() => {
-        setMounted(true);
-        const storedTemp = localStorage.getItem('temperature');
-        if (storedTemp) {
-            setTemperatureState(Number(storedTemp));
-        }
+        const fetchInitialTemperature = async () => {
+            try {
+                const response = await fetch('/api/alexa');
+                const data = await response.json();
+                if (data.temperature) {
+                    setTemperatureState(data.temperature);
+                }
+            } catch (error) {
+                console.error('Error fetching initial temperature:', error);
+            }
+        };
 
-        // Poll for temperature updates every 30 seconds
-        const pollInterval = setInterval(checkForUpdates, 30000);
+        fetchInitialTemperature();
+        setMounted(true);
+
+        // Set up polling for temperature updates
+        const pollInterval = setInterval(checkForUpdates, 5000); // Poll every 5 seconds
         return () => clearInterval(pollInterval);
     }, []);
 
@@ -42,24 +54,20 @@ export const TemperatureProvider = ({ children }: { children: ReactNode }) => {
             const data = await response.json();
 
             if (data.temperature && data.temperature !== temperature) {
+                console.log('Temperature updated from Alexa:', data.temperature);
                 setTemperatureState(data.temperature);
                 setLastUpdated(new Date());
-                localStorage.setItem('temperature', data.temperature.toString());
             }
         } catch (error) {
             console.error('Error checking for temperature updates:', error);
         }
     };
 
-    // Update temperature both locally and on the server
+    // Update temperature function
     const setTemperature = async (temp: number) => {
         setIsLoading(true);
         try {
-            // Update local state immediately for responsive UI
-            setTemperatureState(temp);
-            localStorage.setItem('temperature', temp.toString());
-
-            // Update server
+            // Update Alexa API
             const response = await fetch('/api/alexa', {
                 method: 'PATCH',
                 headers: {
@@ -74,28 +82,24 @@ export const TemperatureProvider = ({ children }: { children: ReactNode }) => {
                 throw new Error('Failed to update temperature');
             }
 
+            // Update local state
+            setTemperatureState(temp);
             setLastUpdated(new Date());
+            console.log('Temperature updated successfully:', temp);
         } catch (error) {
             console.error('Error updating temperature:', error);
-            // Revert on failure
-            const storedTemp = localStorage.getItem('temperature');
-            if (storedTemp) {
-                setTemperatureState(Number(storedTemp));
-            }
         } finally {
             setIsLoading(false);
         }
     };
 
-    const contextValue = {
-        temperature,
-        setTemperature,
-        isLoading,
-        lastUpdated
-    };
-
     return (
-        <TemperatureContext.Provider value={contextValue}>
+        <TemperatureContext.Provider value={{
+            temperature,
+            setTemperature,
+            isLoading,
+            lastUpdated
+        }}>
             {children}
         </TemperatureContext.Provider>
     );
