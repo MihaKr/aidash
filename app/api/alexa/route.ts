@@ -53,6 +53,17 @@ const mockDatabase = {
     getEnvironmentalUpdate: () => mockDatabase.environmentalConditions.currentCondition
 };
 
+
+interface AlexaIntent {
+    name: string;
+    confirmationStatus: 'NONE' | 'CONFIRMED' | 'DENIED';
+    slots?: Record<string, {
+        name: string;
+        value?: string;
+        confirmationStatus: 'NONE' | 'CONFIRMED' | 'DENIED';
+    }>;
+}
+
 export async function POST(req: NextRequest) {
     try {
         const alexaRequest = await req.json();
